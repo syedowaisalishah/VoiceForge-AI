@@ -1,12 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
-from pydantic import BaseModel
-from typing import List, Optional
 import os
 import json
-from dotenv import load_dotenv
+from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Depends
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.style_engine import StyleEngine
+from dotenv import load_dotenv
 import google.generativeai as genai
+from app.core.style_engine import StyleEngine
 
 load_dotenv()
 
@@ -54,17 +54,22 @@ async def get_personas():
 @app.post("/generate")
 async def generate_post(request: GenerationRequest):
     try:
-        prompt = engine.construct_prompt(request.persona, request.platform, request.brief)
-        
-        openai_key = os.getenv("OPENAI_API_KEY")
+        # Construct the persona-driven prompt
+        prompt = engine.construct_prompt(
+            persona_id=request.persona,
+            platform=request.platform,
+            brief=request.brief
+        )
+
         gemini_key = os.getenv("GEMINI_API_KEY")
+        openai_key = os.getenv("OPENAI_API_KEY")
 
         # 1. Try Gemini (Free Tier) - PRIORITIZED
         if gemini_key and not gemini_key.strip() == "":
             try:
                 genai.configure(api_key=gemini_key)
                 
-                # Use gemini-1.5-flash for speed and reliability
+                # Force gemini-1.5-flash for the highest free quota
                 model = genai.GenerativeModel("gemini-1.5-flash")
                 
                 # Disable safety filters to prevent false blocks on business stories
@@ -83,12 +88,15 @@ async def generate_post(request: GenerationRequest):
                     "model": "gemini-1.5-flash"
                 }
             except Exception as e:
-                print(f"Gemini failed, trying OpenAI: {e}")
+                print(f"Gemini failed: {e}")
+                # If Gemini failed due to quota, we might want to try OpenAI if available
+                if not openai_key:
+                    raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
 
-        # 2. Try OpenAI if Gemini fails or is not provided
+        # 2. Try OpenAI fallback
         if openai_key and not openai_key.strip() == "":
             try:
-                import openai # Ensure openai is imported inside if needed or global
+                import openai
                 client = openai.OpenAI(api_key=openai_key)
                 response = client.chat.completions.create(
                     model="gpt-4o",
@@ -99,20 +107,15 @@ async def generate_post(request: GenerationRequest):
                     "persona": request.persona,
                     "platform": request.platform,
                     "content": response.choices[0].message.content.strip(),
-                    "model": "openai"
+                    "model": "openai-gpt-4o"
                 }
             except Exception as e:
-                print(f"OpenAI also failed: {e}")
+                raise HTTPException(status_code=500, detail=f"Both AI engines failed. Gemini error: {str(e)}")
 
-        # 3. Mock Response if no keys work
-        return {
-            "persona": request.persona,
-            "platform": request.platform,
-            "content": f"[MOCK RESPONSE] {request.persona} on {request.platform}: {request.brief}. (Please add credits to OpenAI or use a free Gemini API key)",
-            "prompt_used": prompt
-        }
+        raise HTTPException(status_code=400, detail="No API keys provided")
 
     except Exception as e:
+        print(f"Server Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
