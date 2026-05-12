@@ -54,7 +54,6 @@ async def get_personas():
 @app.post("/generate")
 async def generate_post(request: GenerationRequest):
     try:
-        # Construct the persona-driven prompt
         prompt = engine.construct_prompt(
             persona_id=request.persona,
             platform=request.platform,
@@ -64,15 +63,38 @@ async def generate_post(request: GenerationRequest):
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
 
-        # 1. Try Gemini (Free Tier) - PRIORITIZED
         if gemini_key and not gemini_key.strip() == "":
             try:
                 genai.configure(api_key=gemini_key)
                 
-                # Force gemini-1.5-flash for the highest free quota
-                model = genai.GenerativeModel("gemini-1.5-flash")
+                # Dynamic model discovery to fix the 404 error
+                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                print(f"DEBUG: Available models on your account: {available_models}")
                 
-                # Disable safety filters to prevent false blocks on business stories
+                # Priority list based on your actual available models:
+                # 1. flash-latest (usually 1.5 flash)
+                # 2. 2.0-flash (fast and stable)
+                # 3. 2.0-flash-lite
+                # 4. gemini-pro-latest
+                target_model = None
+                priority_models = [
+                    "models/gemini-flash-latest", 
+                    "models/gemini-2.0-flash", 
+                    "models/gemini-2.0-flash-lite",
+                    "models/gemini-pro-latest"
+                ]
+                
+                for m in priority_models:
+                    if m in available_models:
+                        target_model = m
+                        break
+                
+                if not target_model:
+                    target_model = available_models[0] if available_models else "models/gemini-pro"
+                
+                print(f"Using Gemini model: {target_model}")
+                model = genai.GenerativeModel(target_model)
+                
                 safety_settings = [
                     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
                     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -85,32 +107,28 @@ async def generate_post(request: GenerationRequest):
                     "persona": request.persona,
                     "platform": request.platform,
                     "content": response.text.strip(),
-                    "model": "gemini-1.5-flash"
+                    "model": target_model
                 }
             except Exception as e:
                 print(f"Gemini failed: {e}")
-                # If Gemini failed due to quota, we might want to try OpenAI if available
                 if not openai_key:
                     raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
 
-        # 2. Try OpenAI fallback
+        # OpenAI fallback...
         if openai_key and not openai_key.strip() == "":
-            try:
-                import openai
-                client = openai.OpenAI(api_key=openai_key)
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7
-                )
-                return {
-                    "persona": request.persona,
-                    "platform": request.platform,
-                    "content": response.choices[0].message.content.strip(),
-                    "model": "openai-gpt-4o"
-                }
-            except Exception as e:
-                raise HTTPException(status_code=500, detail=f"Both AI engines failed. Gemini error: {str(e)}")
+            import openai
+            client = openai.OpenAI(api_key=openai_key)
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7
+            )
+            return {
+                "persona": request.persona,
+                "platform": request.platform,
+                "content": response.choices[0].message.content.strip(),
+                "model": "openai-gpt-4o"
+            }
 
         raise HTTPException(status_code=400, detail="No API keys provided")
 
