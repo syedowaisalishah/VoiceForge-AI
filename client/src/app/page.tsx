@@ -23,7 +23,8 @@ export default function Home() {
 
   const fetchPersonas = async () => {
     try {
-      const response = await fetch("http://localhost:8000/personas");
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const response = await fetch(`${backendUrl}/personas`);
       const data = await response.json();
       setPersonas(data);
     } catch (err) {
@@ -43,7 +44,8 @@ export default function Home() {
     setResult("");
 
     try {
-      const response = await fetch("http://localhost:8000/generate", {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+      const response = await fetch(`${backendUrl}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
