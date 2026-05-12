@@ -22,13 +22,13 @@ export default function Home() {
   }, []);
 
   const fetchPersonas = async () => {
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
       const response = await fetch(`${backendUrl}/personas`);
       const data = await response.json();
       setPersonas(data);
     } catch (err) {
-      console.error("Failed to fetch personas", err);
+      console.error(`Failed to fetch personas from ${backendUrl}`, err);
       // Fallback for demo if backend is not yet running
       setPersonas([
         { id: "zack", name: "Zack", description: "Bold and direct, business-focused." },
@@ -43,8 +43,8 @@ export default function Home() {
     setError("");
     setResult("");
 
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
     try {
-      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
       const response = await fetch(`${backendUrl}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,7 +62,7 @@ export default function Home() {
         setError(data.detail || "Something went wrong");
       }
     } catch (err) {
-      setError("Failed to connect to backend. Make sure FastAPI is running on port 8000.");
+      setError(`Failed to connect to backend at ${backendUrl}. Check your Vercel Environment Variables.`);
     } finally {
       setLoading(false);
     }
