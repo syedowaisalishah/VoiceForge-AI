@@ -64,18 +64,14 @@ async def generate_post(request: GenerationRequest):
             try:
                 genai.configure(api_key=gemini_key)
                 
-                # Try to find an available model dynamically
-                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                target_model = 'models/gemini-1.5-flash' if 'models/gemini-1.5-flash' in available_models else (available_models[0] if available_models else 'gemini-pro')
-                
-                print(f"Using Gemini model: {target_model}")
-                model = genai.GenerativeModel(target_model)
+                # Use gemini-1.5-flash for speed and reliability
+                model = genai.GenerativeModel("gemini-1.5-flash")
                 response = model.generate_content(prompt)
                 return {
                     "persona": request.persona,
                     "platform": request.platform,
                     "content": response.text.strip(),
-                    "model": f"gemini ({target_model})"
+                    "model": "gemini-1.5-flash"
                 }
             except Exception as e:
                 print(f"Gemini failed, trying OpenAI: {e}")
