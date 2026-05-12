@@ -1,0 +1,241 @@
+:root {
+  --bg-color: #050505;
+  --card-bg: #111111;
+  --accent-primary: #0070f3;
+  --accent-secondary: #7928ca;
+  --text-main: #ffffff;
+  --text-muted: #888888;
+  --glass: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.main-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4rem 2rem;
+}
+
+h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  background: linear-gradient(to right, #fff, #888);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  text-align: center;
+  font-size: 1.2rem;
+  margin-bottom: 4rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+}
+
+.section-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1rem;
+  color: var(--accent-primary);
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+}
+
+.persona-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.persona-option {
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.persona-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.persona-option.active {
+  border-color: var(--accent-primary);
+  background: rgba(0, 112, 243, 0.1);
+}
+
+.persona-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.persona-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.platform-selector {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.platform-btn {
+  padding: 1rem;
+  border-radius: 12px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.platform-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.platform-btn.active {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.input-area {
+  margin-top: 2rem;
+}
+
+textarea {
+  width: 100%;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  color: #fff;
+  font-family: inherit;
+  font-size: 1rem;
+  resize: none;
+  height: 150px;
+  transition: border-color 0.3s;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.generate-btn {
+  width: 100%;
+  margin-top: 2rem;
+  padding: 1.2rem;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(45deg, var(--accent-primary), var(--accent-secondary));
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 4px 15px rgba(0, 112, 243, 0.3);
+}
+
+.generate-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 112, 243, 0.5);
+}
+
+.generate-btn:active {
+  transform: scale(0.98);
+}
+
+.generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.result-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.result-content {
+  background: rgba(0,0,0,0.3);
+  border-radius: 16px;
+  padding: 2rem;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  flex-grow: 1;
+  border: 1px dashed var(--glass-border);
+}
+
+.placeholder-text {
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 4rem;
+}
+
+.loader {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 1s ease-in-out infinite;
+  display: inline-block;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  h1 { font-size: 2.5rem; }
+}
