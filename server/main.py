@@ -84,6 +84,9 @@ async def generate_post(request: GenerationRequest):
             post_type=request.post_type,
             mood=request.mood
         )
+        
+        print(f"DEBUG: Constructing prompt for {request.persona}...")
+        # print(f"PROMPT DEBUG:\n{prompt}") # Uncomment to see full prompt 
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
@@ -95,33 +98,31 @@ async def generate_post(request: GenerationRequest):
                 from google.genai import types
 
                 client = genai.Client(api_key=gemini_key)
+                
+                # Try to discover available models
+                available = []
+                try:
+                    available = [m.name for m in client.models.list()]
+                    print(f"DEBUG: Available models: {available}")
+                except Exception as e:
+                    print(f"Model discovery failed: {e}")
 
-                # Model priority list — tries each in order
                 priority_models = [
                     "gemini-1.5-flash",
                     "gemini-1.5-flash-latest",
                     "gemini-1.5-flash-8b",
                     "gemini-flash-latest",
                     "gemini-2.0-flash",
-                    "gemini-2.0-flash-lite",
                 ]
 
-                target_model = priority_models[0]  # Default
+                target_model = "gemini-1.5-flash" # Safe default
+                for candidate in priority_models:
+                    full_name = f"models/{candidate}"
+                    if full_name in available or candidate in available:
+                        target_model = candidate
+                        break
 
-                # Try to discover available models
-                try:
-                    available = [m.name for m in client.models.list()]
-                    print(f"DEBUG: Available models: {available}")
-                    for candidate in priority_models:
-                        # API returns names like "models/gemini-2.0-flash"
-                        full_name = f"models/{candidate}"
-                        if full_name in available or candidate in available:
-                            target_model = candidate
-                            break
-                except Exception as e:
-                    print(f"Model discovery failed, using default: {e}")
-
-                print(f"Using Gemini model: {target_model}")
+                print(f"DEBUG: Attempting generation with: {target_model}")
 
                 config = types.GenerateContentConfig(
                     temperature=0.65,
