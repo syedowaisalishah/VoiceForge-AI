@@ -1,11 +1,10 @@
 import os
 import json
 from typing import List, Optional
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-import google.generativeai as genai
 from app.core.style_engine import StyleEngine
 
 load_dotenv()
@@ -25,31 +24,55 @@ app.add_middleware(
 DATA_DIR = os.path.join(os.path.dirname(__file__), "app", "data")
 engine = StyleEngine(DATA_DIR)
 
+
 class GenerationRequest(BaseModel):
     persona: str
     platform: str
     brief: str
+    post_type: Optional[str] = None
+    mood: Optional[str] = None
+
 
 class Persona(BaseModel):
     id: str
     name: str
     description: str
 
+
+class PostType(BaseModel):
+    id: str
+    label: str
+    description: str
+
+
 @app.get("/")
 async def root():
     return {"message": "VoiceForge AI API is running"}
+
 
 @app.get("/personas", response_model=List[Persona])
 async def get_personas():
     personas_data = engine.personas
     return [
         {
-            "id": pid, 
-            "name": data.get("persona", {}).get("name", pid.capitalize()), 
-            "description": data.get("tone", {}).get("overall", "No description")
+            "id": pid,
+            "name": data.get("persona", {}).get("name", pid.capitalize()),
+            "description": data.get("persona", {}).get(
+                "voice_summary",
+                data.get("tone", {}).get("overall", "No description")
+            )
         }
         for pid, data in personas_data.items()
     ]
+
+
+@app.get("/post-types/{persona_id}", response_model=List[PostType])
+async def get_post_types(persona_id: str):
+    """Return available post types for a given persona."""
+    if persona_id not in engine.personas:
+        raise HTTPException(status_code=404, detail=f"Persona '{persona_id}' not found")
+    return engine.get_post_types(persona_id)
+
 
 @app.post("/generate")
 async def generate_post(request: GenerationRequest):
@@ -57,84 +80,109 @@ async def generate_post(request: GenerationRequest):
         prompt = engine.construct_prompt(
             persona_id=request.persona,
             platform=request.platform,
-            brief=request.brief
+            brief=request.brief,
+            post_type=request.post_type,
+            mood=request.mood
         )
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
 
-        if gemini_key and not gemini_key.strip() == "":
+        # ── Gemini (new google-genai SDK) ─────────────────────────────────
+        if gemini_key and gemini_key.strip():
             try:
-                genai.configure(api_key=gemini_key)
-                
-                # Dynamic model discovery to fix the 404 error
-                available_models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                print(f"DEBUG: Available models on your account: {available_models}")
-                
-                # Priority list based on your actual available models:
-                # 1. flash-latest (usually 1.5 flash)
-                # 2. 2.0-flash (fast and stable)
-                # 3. 2.0-flash-lite
-                # 4. gemini-pro-latest
-                target_model = None
+                from google import genai
+                from google.genai import types
+
+                client = genai.Client(api_key=gemini_key)
+
+                # Model priority list — tries each in order
                 priority_models = [
-                    "models/gemini-flash-latest", 
-                    "models/gemini-2.0-flash", 
-                    "models/gemini-2.0-flash-lite",
-                    "models/gemini-pro-latest"
+                    "gemini-1.5-flash",
+                    "gemini-1.5-flash-latest",
+                    "gemini-1.5-flash-8b",
+                    "gemini-flash-latest",
+                    "gemini-2.0-flash",
+                    "gemini-2.0-flash-lite",
                 ]
-                
-                for m in priority_models:
-                    if m in available_models:
-                        target_model = m
-                        break
-                
-                if not target_model:
-                    target_model = available_models[0] if available_models else "models/gemini-pro"
-                
+
+                target_model = priority_models[0]  # Default
+
+                # Try to discover available models
+                try:
+                    available = [m.name for m in client.models.list()]
+                    print(f"DEBUG: Available models: {available}")
+                    for candidate in priority_models:
+                        # API returns names like "models/gemini-2.0-flash"
+                        full_name = f"models/{candidate}"
+                        if full_name in available or candidate in available:
+                            target_model = candidate
+                            break
+                except Exception as e:
+                    print(f"Model discovery failed, using default: {e}")
+
                 print(f"Using Gemini model: {target_model}")
-                model = genai.GenerativeModel(target_model)
-                
-                safety_settings = [
-                    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
-                    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
-                ]
-                
-                response = model.generate_content(prompt, safety_settings=safety_settings)
+
+                config = types.GenerateContentConfig(
+                    temperature=0.65,
+                    top_p=0.92,
+                    top_k=40,
+                    safety_settings=[
+                        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT",        threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH",        threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT",  threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT",  threshold="BLOCK_NONE"),
+                    ]
+                )
+
+                response = client.models.generate_content(
+                    model=target_model,
+                    contents=prompt,
+                    config=config,
+                )
+
                 return {
                     "persona": request.persona,
                     "platform": request.platform,
+                    "post_type": request.post_type,
                     "content": response.text.strip(),
-                    "model": target_model
+                    "model": target_model,
                 }
+
             except Exception as e:
                 print(f"Gemini failed: {e}")
                 if not openai_key:
                     raise HTTPException(status_code=500, detail=f"Gemini error: {str(e)}")
 
-        # OpenAI fallback...
-        if openai_key and not openai_key.strip() == "":
+        # ── OpenAI fallback ───────────────────────────────────────────────
+        if openai_key and openai_key.strip():
             import openai
             client = openai.OpenAI(api_key=openai_key)
             response = client.chat.completions.create(
                 model="gpt-4o",
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0.7
+                temperature=0.65,
+                top_p=0.92,
             )
             return {
                 "persona": request.persona,
                 "platform": request.platform,
+                "post_type": request.post_type,
                 "content": response.choices[0].message.content.strip(),
-                "model": "openai-gpt-4o"
+                "model": "openai-gpt-4o",
             }
 
-        raise HTTPException(status_code=400, detail="No API keys provided")
+        raise HTTPException(
+            status_code=400,
+            detail="No API keys configured. Set GEMINI_API_KEY or OPENAI_API_KEY in your .env file."
+        )
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"Server Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 if __name__ == "__main__":
     import uvicorn
