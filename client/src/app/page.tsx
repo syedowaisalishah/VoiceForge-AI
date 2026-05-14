@@ -153,7 +153,7 @@ export default function Home() {
         { id: "four_liner", label: "4-Liner",        emoji: "📝", description: "3–4 short lines. One idea per line.",  preview: "── ──────────────────────────────\n── ────────────────────\n── ──────────────────────────\n── ─────────────" },
         { id: "mid_length", label: "Mid-Length",     emoji: "📄", description: "5–8 lines. Paragraph + kicker.",       preview: "── ─────────────────────────────────\n\n── ────── ─────────── ──────\n── ─────────────────────────────\n\n── ─────────────────────" },
         { id: "thread",     label: "Thread",         emoji: "🧵", description: "Numbered tweets. Hook → Points → Close.", preview: "1/ ──────────────────────────────────\n\n2/ ─────── ──────────────────\n\n3/ ──────────── ─────────────\n\n4/ ─────────────────────────── ↩" },
-        { id: "ai_decide",  label: "Let AI Decide",  emoji: "✨", description: "AI picks the right length.",            preview: "" },
+        { id: "ai_decide",  label: "Auto (Best Fit)",  emoji: "🎯", description: "System picks the right length.",            preview: "" },
       ]);
     }
   };
@@ -368,7 +368,7 @@ export default function Home() {
           value={selectedPostType}
           onChange={(e) => setSelectedPostType(e.target.value)}
         >
-          <option value="">— Let the AI decide —</option>
+          <option value="">— Auto (based on brief) —</option>
           {postTypes.map((pt) => (
             <option key={pt.id} value={pt.id}>{pt.label}</option>
           ))}

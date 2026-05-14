@@ -28,7 +28,7 @@ TONES = [
     {
         "id": "humble_brag",
         "label": "Humble Brag",
-        "emoji": "😤",
+        "emoji": "😏",
         "description": "Achievement, but grounded and self-aware.",
         "prompt_hint": "Share the win, but stay grounded. Acknowledge the hard part or the cost. Make it feel earned, not showboated.",
     },
@@ -170,11 +170,11 @@ RULES:
     },
     {
         "id": "ai_decide",
-        "label": "Let AI Decide",
-        "emoji": "✨",
-        "description": "AI picks the right length based on your brief.",
+        "label": "Auto (Best Fit)",
+        "emoji": "🎯",
+        "description": "System picks the right length based on your brief.",
         "preview": "",
-        "prompt_hint": """FORMAT: AI DECIDES
+        "prompt_hint": """FORMAT: AUTO (BEST FIT)
 Choose the format that best serves the brief. Short brief = shorter post. Rich brief with multiple points = consider a thread. 
 Default to mid-length if unsure. Never pad to fill space.""",
     },
@@ -235,7 +235,7 @@ class StyleEngine:
         target_audience: Optional[str] = None,
         custom_audience: Optional[str] = None,
         x_format: Optional[str] = None,
-    ) -> str:
+    ) -> tuple[str, str]:
         p = self.personas.get(persona_id)
         if not p:
             raise ValueError(f"Persona '{persona_id}' not found")
@@ -535,8 +535,8 @@ Study these carefully. Match the rhythm, vocabulary, and structure — not just 
 
 {formatted_examples}
 
-{hallucination_firewall}
 {output_rules_block}
+{hallucination_firewall}
 {anti_ai_block}"""
 
         # ── User message (just the brief + the trigger to write) ─────────────
