@@ -31,6 +31,10 @@ class GenerationRequest(BaseModel):
     brief: str
     post_type: Optional[str] = None
     mood: Optional[str] = None
+    tone: Optional[str] = None
+    target_audience: Optional[str] = None
+    custom_audience: Optional[str] = None
+    x_format: Optional[str] = None
 
 
 class Persona(BaseModel):
@@ -43,6 +47,27 @@ class PostType(BaseModel):
     id: str
     label: str
     description: str
+
+
+class ToneOption(BaseModel):
+    id: str
+    label: str
+    emoji: str
+    description: str
+
+
+class AudienceOption(BaseModel):
+    id: str
+    label: str
+    emoji: str
+
+
+class XFormatOption(BaseModel):
+    id: str
+    label: str
+    emoji: str
+    description: str
+    preview: str
 
 
 @app.get("/")
@@ -74,24 +99,45 @@ async def get_post_types(persona_id: str):
     return engine.get_post_types(persona_id)
 
 
+@app.get("/tones", response_model=List[ToneOption])
+async def get_tones():
+    """Return all available writing tones."""
+    return engine.get_tones()
+
+
+@app.get("/audiences", response_model=List[AudienceOption])
+async def get_audiences():
+    """Return all available target audiences."""
+    return engine.get_audiences()
+
+
+@app.get("/x-formats", response_model=List[XFormatOption])
+async def get_x_formats():
+    """Return all available X post formats."""
+    return engine.get_x_formats()
+
+
 @app.post("/generate")
 async def generate_post(request: GenerationRequest):
     try:
-        prompt = engine.construct_prompt(
+        system_prompt, user_message = engine.construct_prompt(
             persona_id=request.persona,
             platform=request.platform,
             brief=request.brief,
             post_type=request.post_type,
-            mood=request.mood
+            mood=request.mood,
+            tone=request.tone,
+            target_audience=request.target_audience,
+            custom_audience=request.custom_audience,
+            x_format=request.x_format,
         )
         
         print(f"DEBUG: Constructing prompt for {request.persona}...")
-        # print(f"PROMPT DEBUG:\n{prompt}") # Uncomment to see full prompt 
 
         gemini_key = os.getenv("GEMINI_API_KEY")
         openai_key = os.getenv("OPENAI_API_KEY")
 
-        # ── Gemini (new google-genai SDK) ─────────────────────────────────
+        # ── Gemini ─────────────────────────────────────────────────────────
         if gemini_key and gemini_key.strip():
             try:
                 from google import genai
@@ -99,7 +145,6 @@ async def generate_post(request: GenerationRequest):
 
                 client = genai.Client(api_key=gemini_key)
                 
-                # Try to discover available models
                 available = []
                 try:
                     available = [m.name for m in client.models.list()]
@@ -115,7 +160,7 @@ async def generate_post(request: GenerationRequest):
                     "gemini-2.0-flash",
                 ]
 
-                target_model = "gemini-1.5-flash" # Safe default
+                target_model = "gemini-1.5-flash"
                 for candidate in priority_models:
                     full_name = f"models/{candidate}"
                     if full_name in available or candidate in available:
@@ -125,6 +170,8 @@ async def generate_post(request: GenerationRequest):
                 print(f"DEBUG: Attempting generation with: {target_model}")
 
                 config = types.GenerateContentConfig(
+                    # System instruction keeps rules fully separate from the user turn
+                    system_instruction=system_prompt,
                     temperature=0.65,
                     top_p=0.92,
                     top_k=40,
@@ -136,9 +183,10 @@ async def generate_post(request: GenerationRequest):
                     ]
                 )
 
+                # user_message is the ONLY thing in contents — clean turn boundary
                 response = client.models.generate_content(
                     model=target_model,
-                    contents=prompt,
+                    contents=user_message,
                     config=config,
                 )
 
@@ -146,6 +194,9 @@ async def generate_post(request: GenerationRequest):
                     "persona": request.persona,
                     "platform": request.platform,
                     "post_type": request.post_type,
+                    "tone": request.tone,
+                    "target_audience": request.target_audience,
+                    "x_format": request.x_format,
                     "content": response.text.strip(),
                     "model": target_model,
                 }
@@ -161,7 +212,10 @@ async def generate_post(request: GenerationRequest):
             client = openai.OpenAI(api_key=openai_key)
             response = client.chat.completions.create(
                 model="gpt-4o",
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_message},
+                ],
                 temperature=0.65,
                 top_p=0.92,
             )
@@ -169,6 +223,9 @@ async def generate_post(request: GenerationRequest):
                 "persona": request.persona,
                 "platform": request.platform,
                 "post_type": request.post_type,
+                "tone": request.tone,
+                "target_audience": request.target_audience,
+                "x_format": request.x_format,
                 "content": response.choices[0].message.content.strip(),
                 "model": "openai-gpt-4o",
             }
@@ -177,6 +234,7 @@ async def generate_post(request: GenerationRequest):
             status_code=400,
             detail="No API keys configured. Set GEMINI_API_KEY or OPENAI_API_KEY in your .env file."
         )
+
 
     except HTTPException:
         raise
