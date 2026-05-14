@@ -14,6 +14,27 @@ interface PostType {
   description: string;
 }
 
+interface ToneOption {
+  id: string;
+  label: string;
+  emoji: string;
+  description: string;
+}
+
+interface AudienceOption {
+  id: string;
+  label: string;
+  emoji: string;
+}
+
+interface XFormatOption {
+  id: string;
+  label: string;
+  emoji: string;
+  description: string;
+  preview: string;
+}
+
 const MOODS = [
   { id: "proud",       label: "Proud 💪"     },
   { id: "reflective",  label: "Reflective 🤔" },
@@ -28,10 +49,18 @@ const MOODS = [
 export default function Home() {
   const [personas, setPersonas]               = useState<Persona[]>([]);
   const [postTypes, setPostTypes]             = useState<PostType[]>([]);
+  const [tones, setTones]                     = useState<ToneOption[]>([]);
+  const [audiences, setAudiences]             = useState<AudienceOption[]>([]);
+  const [xFormats, setXFormats]               = useState<XFormatOption[]>([]);
+
   const [selectedPersona, setSelectedPersona] = useState<string>("zack");
   const [platform, setPlatform]               = useState<string>("X");
   const [selectedPostType, setSelectedPostType] = useState<string>("");
   const [selectedMood, setSelectedMood]       = useState<string>("");
+  const [selectedTone, setSelectedTone]       = useState<string>("");
+  const [selectedAudience, setSelectedAudience] = useState<string>("");
+  const [customAudience, setCustomAudience]   = useState<string>("");
+  const [selectedXFormat, setSelectedXFormat] = useState<string>("ai_decide");
   const [brief, setBrief]                     = useState<string>("");
   const [result, setResult]                   = useState<string>("");
   const [loading, setLoading]                 = useState<boolean>(false);
@@ -40,7 +69,12 @@ export default function Home() {
 
   const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
-  useEffect(() => { fetchPersonas(); }, []);
+  useEffect(() => {
+    fetchPersonas();
+    fetchTones();
+    fetchAudiences();
+    fetchXFormats();
+  }, []);
 
   useEffect(() => {
     if (selectedPersona) {
@@ -48,6 +82,11 @@ export default function Home() {
       setSelectedPostType("");
     }
   }, [selectedPersona]);
+
+  // When platform changes away from X, reset x_format
+  useEffect(() => {
+    if (platform !== "X") setSelectedXFormat("ai_decide");
+  }, [platform]);
 
   const fetchPersonas = async () => {
     try {
@@ -69,6 +108,56 @@ export default function Home() {
     } catch { /* silent */ }
   };
 
+  const fetchTones = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/tones`);
+      if (res.ok) setTones(await res.json());
+    } catch {
+      // Fallback tones if backend not reachable
+      setTones([
+        { id: "raw",          label: "Raw & Unfiltered",    emoji: "🔥", description: "No polish. Like a voice note." },
+        { id: "story",        label: "Story",               emoji: "📖", description: "Narrative arc — setup, turn, close." },
+        { id: "controversial",label: "Controversial Take",  emoji: "⚡", description: "Bold claim people will argue with." },
+        { id: "humble_brag",  label: "Humble Brag",         emoji: "😤", description: "Achievement, but grounded." },
+        { id: "rant",         label: "Rant",                emoji: "😤", description: "Controlled frustration with clarity." },
+        { id: "lesson",       label: "Lesson Learned",      emoji: "💡", description: "What happened and what it taught." },
+        { id: "hype",         label: "Hype",                emoji: "🚀", description: "Big energy. Announcement-style." },
+        { id: "question",     label: "Question / Open Loop", emoji: "🤔", description: "Opens a conversation, ends with a hook." },
+      ]);
+    }
+  };
+
+  const fetchAudiences = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/audiences`);
+      if (res.ok) setAudiences(await res.json());
+    } catch {
+      setAudiences([
+        { id: "founders",      label: "Entrepreneurs / Founders",    emoji: "💼" },
+        { id: "beginners",     label: "Beginners / New People",       emoji: "🌱" },
+        { id: "service_biz",   label: "Service Business Owners",      emoji: "🔧" },
+        { id: "personal_brand",label: "Personal Brand Builders",      emoji: "📱" },
+        { id: "general",       label: "General Public",               emoji: "🌍" },
+        { id: "custom",        label: "Custom (specify below)",       emoji: "✏️" },
+      ]);
+    }
+  };
+
+  const fetchXFormats = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/x-formats`);
+      if (res.ok) setXFormats(await res.json());
+    } catch {
+      setXFormats([
+        { id: "two_liner",  label: "2-Liner",       emoji: "⚡", description: "Punchy. Under 140 chars.",              preview: "── ──────────────────────────\n── ─────────────────" },
+        { id: "four_liner", label: "4-Liner",        emoji: "📝", description: "3–4 short lines. One idea per line.",  preview: "── ──────────────────────────────\n── ────────────────────\n── ──────────────────────────\n── ─────────────" },
+        { id: "mid_length", label: "Mid-Length",     emoji: "📄", description: "5–8 lines. Paragraph + kicker.",       preview: "── ─────────────────────────────────\n\n── ────── ─────────── ──────\n── ─────────────────────────────\n\n── ─────────────────────" },
+        { id: "thread",     label: "Thread",         emoji: "🧵", description: "Numbered tweets. Hook → Points → Close.", preview: "1/ ──────────────────────────────────\n\n2/ ─────── ──────────────────\n\n3/ ──────────── ─────────────\n\n4/ ─────────────────────────── ↩" },
+        { id: "ai_decide",  label: "Let AI Decide",  emoji: "✨", description: "AI picks the right length.",            preview: "" },
+      ]);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!brief.trim()) return;
     setLoading(true);
@@ -76,16 +165,22 @@ export default function Home() {
     setResult("");
     setCopied(false);
     try {
+      const body: Record<string, string | undefined> = {
+        persona:         selectedPersona,
+        platform,
+        brief,
+        post_type:       selectedPostType   || undefined,
+        mood:            selectedMood        || undefined,
+        tone:            selectedTone        || undefined,
+        target_audience: selectedAudience    || undefined,
+        custom_audience: (selectedAudience === "custom" && customAudience.trim()) ? customAudience.trim() : undefined,
+        x_format:        (platform === "X" && selectedXFormat) ? selectedXFormat : undefined,
+      };
+
       const res = await fetch(`${backendUrl}/generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          persona:   selectedPersona,
-          platform,
-          brief,
-          post_type: selectedPostType || undefined,
-          mood:      selectedMood     || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (res.ok) setResult(data.content);
@@ -104,6 +199,11 @@ export default function Home() {
   };
 
   const selectedPostTypeObj = postTypes.find(pt => pt.id === selectedPostType);
+  const selectedToneObj     = tones.find(t => t.id === selectedTone);
+  const selectedAudienceObj = audiences.find(a => a.id === selectedAudience);
+  const selectedXFormatObj  = xFormats.find(f => f.id === selectedXFormat);
+
+  let stepNum = 1;
 
   return (
     <main className="main-container">
@@ -111,12 +211,12 @@ export default function Home() {
       {/* Header */}
       <div className="page-header">
         <h1>VoiceForge AI</h1>
-        <p className="subtitle">Authentic posts in any writer's voice — no AI filler, no hallucinated facts.</p>
+        <p className="subtitle">Authentic posts in any writer&apos;s voice — no AI filler, no hallucinated facts.</p>
       </div>
 
       {/* ── Step 1: Writer ─────────────────────────────── */}
       <div className="card">
-        <h2 className="section-title"><span className="step-num">1</span>Select Writer</h2>
+        <h2 className="section-title"><span className="step-num">{stepNum++}</span>Select Writer</h2>
         <div className="persona-selector">
           {personas.map((p) => (
             <div
@@ -137,7 +237,7 @@ export default function Home() {
 
       {/* ── Step 2: Platform ───────────────────────────── */}
       <div className="card">
-        <h2 className="section-title"><span className="step-num">2</span>Target Platform</h2>
+        <h2 className="section-title"><span className="step-num">{stepNum++}</span>Target Platform</h2>
         <div className="platform-selector">
           {["X", "Facebook"].map((pl) => (
             <button
@@ -152,10 +252,114 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Step 3: Post Type ──────────────────────────── */}
+      {/* ── Step 3: X Post Format (only when X selected) ── */}
+      {platform === "X" && (
+        <div className="card">
+          <h2 className="section-title">
+            <span className="step-num">{stepNum++}</span>Post Format
+            <span className="optional-tag">shapes the output length</span>
+          </h2>
+          <div className="x-format-grid">
+            {xFormats.map((fmt) => (
+              <div
+                key={fmt.id}
+                id={`format-${fmt.id}`}
+                className={`x-format-card ${selectedXFormat === fmt.id ? "active" : ""}`}
+                onClick={() => setSelectedXFormat(fmt.id)}
+              >
+                <div className="x-format-card-header">
+                  <span className="x-format-emoji">{fmt.emoji}</span>
+                  <span className="x-format-label">{fmt.label}</span>
+                </div>
+                <div className="x-format-desc">{fmt.description}</div>
+                {fmt.preview && (
+                  <div className="x-format-preview">{fmt.preview}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Step: Writing Tone ─────────────────────────── */}
       <div className="card">
         <h2 className="section-title">
-          <span className="step-num">3</span>Post Type
+          <span className="step-num">{stepNum++}</span>Writing Tone
+          <span className="optional-tag">the angle of this post</span>
+        </h2>
+        <div className="tone-grid">
+          {tones.map((t) => (
+            <div
+              key={t.id}
+              id={`tone-${t.id}`}
+              className={`tone-pill ${selectedTone === t.id ? "active" : ""}`}
+              onClick={() => setSelectedTone(selectedTone === t.id ? "" : t.id)}
+            >
+              <span className="tone-pill-emoji">{t.emoji}</span>
+              <div className="tone-pill-body">
+                <span className="tone-pill-label">{t.label}</span>
+                <span className="tone-pill-desc">{t.description}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Step: Mood ─────────────────────────────────── */}
+      <div className="card">
+        <h2 className="section-title">
+          <span className="step-num">{stepNum++}</span>Mood
+          <span className="optional-tag">optional</span>
+        </h2>
+        <div className="mood-selector">
+          {MOODS.map((m) => (
+            <button
+              key={m.id}
+              id={`mood-${m.id}`}
+              className={`mood-btn ${selectedMood === m.id ? "active" : ""}`}
+              onClick={() => setSelectedMood(selectedMood === m.id ? "" : m.id)}
+            >
+              {m.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Step: Target Audience ──────────────────────── */}
+      <div className="card">
+        <h2 className="section-title">
+          <span className="step-num">{stepNum++}</span>Target Audience
+          <span className="optional-tag">shapes vocabulary & depth</span>
+        </h2>
+        <div className="audience-grid">
+          {audiences.map((a) => (
+            <button
+              key={a.id}
+              id={`audience-${a.id}`}
+              className={`audience-btn ${selectedAudience === a.id ? "active" : ""}`}
+              onClick={() => setSelectedAudience(selectedAudience === a.id ? "" : a.id)}
+            >
+              <span className="audience-emoji">{a.emoji}</span>
+              <span className="audience-label">{a.label}</span>
+            </button>
+          ))}
+        </div>
+        {selectedAudience === "custom" && (
+          <input
+            id="custom-audience-input"
+            type="text"
+            className="custom-audience-input"
+            placeholder='e.g. "HVAC business owners in Texas" or "indie game developers"'
+            value={customAudience}
+            onChange={(e) => setCustomAudience(e.target.value)}
+          />
+        )}
+      </div>
+
+      {/* ── Step: Post Type (persona-specific, optional) ── */}
+      <div className="card">
+        <h2 className="section-title">
+          <span className="step-num">{stepNum++}</span>Post Type
           <span className="optional-tag">optional but recommended</span>
         </h2>
         <select
@@ -174,29 +378,9 @@ export default function Home() {
         )}
       </div>
 
-      {/* ── Step 4: Mood ───────────────────────────────── */}
+      {/* ── Step: Brief + Generate ─────────────────────── */}
       <div className="card">
-        <h2 className="section-title">
-          <span className="step-num">4</span>Mood
-          <span className="optional-tag">optional</span>
-        </h2>
-        <div className="mood-selector">
-          {MOODS.map((m) => (
-            <button
-              key={m.id}
-              id={`mood-${m.id}`}
-              className={`mood-btn ${selectedMood === m.id ? "active" : ""}`}
-              onClick={() => setSelectedMood(selectedMood === m.id ? "" : m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Step 5: Brief + Generate ───────────────────── */}
-      <div className="card">
-        <h2 className="section-title"><span className="step-num">5</span>The Brief</h2>
+        <h2 className="section-title"><span className="step-num">{stepNum++}</span>The Brief</h2>
         <div className="brief-guidance">
           <strong>Facts only.</strong> Give raw numbers, job details, outcomes — don&apos;t write the post yourself.
         </div>
@@ -233,8 +417,21 @@ export default function Home() {
             {result && (
               <div className="result-meta">
                 <span className="result-badge">{selectedPersona}</span>
-                {selectedPostType && <span className="result-badge">{selectedPostType.replace(/_/g, " ")}</span>}
                 <span className="result-badge">{platform}</span>
+                {selectedXFormat && selectedXFormat !== "ai_decide" && selectedXFormatObj && (
+                  <span className="result-badge format-badge">{selectedXFormatObj.emoji} {selectedXFormatObj.label}</span>
+                )}
+                {selectedTone && selectedToneObj && (
+                  <span className="result-badge tone-badge">{selectedToneObj.emoji} {selectedToneObj.label}</span>
+                )}
+                {selectedAudience && selectedAudienceObj && (
+                  <span className="result-badge audience-badge">
+                    {selectedAudienceObj.emoji} {selectedAudience === "custom" && customAudience ? customAudience : selectedAudienceObj.label}
+                  </span>
+                )}
+                {selectedPostType && (
+                  <span className="result-badge">{selectedPostType.replace(/_/g, " ")}</span>
+                )}
               </div>
             )}
           </div>
