@@ -116,7 +116,7 @@ export default function Home() {
       // Fallback tones if backend not reachable
       setTones([
         { id: "raw",          label: "Raw & Unfiltered",    emoji: "🔥", description: "No polish. Like a voice note." },
-        { id: "story",        label: "Story",               emoji: "📖", description: "Narrative arc — setup, turn, close." },
+        { id: "story",        label: "Story",               emoji: "📖", description: "Narrative arc: setup, turn, close." },
         { id: "controversial",label: "Controversial Take",  emoji: "⚡", description: "Bold claim people will argue with." },
         { id: "humble_brag",  label: "Humble Brag",         emoji: "😤", description: "Achievement, but grounded." },
         { id: "rant",         label: "Rant",                emoji: "😤", description: "Controlled frustration with clarity." },
@@ -149,9 +149,9 @@ export default function Home() {
       if (res.ok) setXFormats(await res.json());
     } catch {
       setXFormats([
-        { id: "two_liner",  label: "2-Liner",       emoji: "⚡", description: "Punchy. Under 140 chars.",              preview: "── ──────────────────────────\n── ─────────────────" },
-        { id: "four_liner", label: "4-Liner",        emoji: "📝", description: "3–4 short lines. One idea per line.",  preview: "── ──────────────────────────────\n── ────────────────────\n── ──────────────────────────\n── ─────────────" },
-        { id: "mid_length", label: "Mid-Length",     emoji: "📄", description: "5–8 lines. Paragraph + kicker.",       preview: "── ─────────────────────────────────\n\n── ────── ─────────── ──────\n── ─────────────────────────────\n\n── ─────────────────────" },
+        { id: "two_liner",  label: "2-Liner",       emoji: "⚡", description: "Punchy. Under 140 chars.",              preview: "──────────────────────────\n─────────────────" },
+        { id: "four_liner", label: "4-Liner",        emoji: "📝", description: "3–4 short lines. One idea per line.",  preview: "──────────────────────────────\n────────────────────\n──────────────────────────\n─────────────" },
+        { id: "mid_length", label: "Mid-Length",     emoji: "📄", description: "5–8 lines. Paragraph + kicker.",       preview: "───────────────────────────────────\n\n────── ─────────── ──────\n─────────────────────────────\n\n─────────────────────" },
         { id: "thread",     label: "Thread",         emoji: "🧵", description: "Numbered tweets. Hook → Points → Close.", preview: "1/ ──────────────────────────────────\n\n2/ ─────── ──────────────────\n\n3/ ──────────── ─────────────\n\n4/ ─────────────────────────── ↩" },
         { id: "ai_decide",  label: "Auto (Best Fit)",  emoji: "🎯", description: "System picks the right length.",            preview: "" },
       ]);
@@ -211,7 +211,7 @@ export default function Home() {
       {/* Header */}
       <div className="page-header">
         <h1>VoiceForge AI</h1>
-        <p className="subtitle">Authentic posts in any writer&apos;s voice — no AI filler, no hallucinated facts.</p>
+        <p className="subtitle">Authentic posts in any writer&apos;s voice. No AI filler, no hallucinated facts.</p>
       </div>
 
       {/* ── Step 1: Writer ─────────────────────────────── */}
@@ -368,7 +368,7 @@ export default function Home() {
           value={selectedPostType}
           onChange={(e) => setSelectedPostType(e.target.value)}
         >
-          <option value="">— Auto (based on brief) —</option>
+          <option value="">Auto (based on brief)</option>
           {postTypes.map((pt) => (
             <option key={pt.id} value={pt.id}>{pt.label}</option>
           ))}
@@ -382,12 +382,12 @@ export default function Home() {
       <div className="card">
         <h2 className="section-title"><span className="step-num">{stepNum++}</span>The Brief</h2>
         <div className="brief-guidance">
-          <strong>Facts only.</strong> Give raw numbers, job details, outcomes — don&apos;t write the post yourself.
+          <strong>Facts only.</strong> Give raw numbers, job details, outcomes. Don&apos;t write the post yourself.
         </div>
         <textarea
           id="brief-input"
           className="brief-textarea"
-          placeholder={"Examples:\n• Revenue $17,572 · Labor $8,471 · Profit $6,507 — July recap\n• Lost 3 cleaners this week, $14K unassigned on the schedule\n• Post-construction clean, 5,200 sqft, charged $2,340, profit $1,395"}
+          placeholder={"Examples:\n• Revenue $17,572 · Labor $8,471 · Profit $6,507 | July recap\n• Lost 3 cleaners this week, $14K unassigned on the schedule\n• Post-construction clean, 5,200 sqft, charged $2,340, profit $1,395"}
           value={brief}
           onChange={(e) => setBrief(e.target.value)}
         />

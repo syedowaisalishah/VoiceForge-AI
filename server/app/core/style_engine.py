@@ -15,7 +15,7 @@ TONES = [
         "id": "story",
         "label": "Story",
         "emoji": "📖",
-        "description": "Narrative arc — setup, what happened, the turn.",
+        "description": "Narrative arc: setup, what happened, the turn.",
         "prompt_hint": "Structure as a mini story: set the scene, build tension or contrast, land with the turn or punchline. Every sentence moves forward.",
     },
     {
@@ -43,7 +43,7 @@ TONES = [
         "id": "lesson",
         "label": "Lesson Learned",
         "emoji": "💡",
-        "description": "Retrospective — what happened and what it taught.",
+        "description": "Retrospective: what happened and what it taught.",
         "prompt_hint": "Start with the mistake or situation. End with the specific insight. Keep it concrete — no generic wisdom.",
     },
     {
@@ -109,7 +109,7 @@ X_FORMATS = [
         "label": "2-Liner",
         "emoji": "⚡",
         "description": "Punchy. Under 140 chars. No explanation.",
-        "preview": "── ────────────────────────\n── ─────────────────",
+        "preview": "──────────────────────────\n─────────────────",
         "prompt_hint": """FORMAT: 2-LINER (STRICT)
 HARD RULES — any violation means the output is rejected:
   • Exactly 2 lines. Not 3. Not 4. Two.
@@ -125,7 +125,7 @@ HARD RULES — any violation means the output is rejected:
         "label": "4-Liner",
         "emoji": "📝",
         "description": "3–4 short lines. One idea per line.",
-        "preview": "── ──────────────────────────────\n── ────────────────────\n── ──────────────────────────\n── ─────────────",
+        "preview": "──────────────────────────────\n────────────────────\n──────────────────────────\n─────────────",
         "prompt_hint": """FORMAT: 4-LINER (STRICT)
 HARD RULES:
   • 3 to 4 lines maximum. Each line is short — ideally under 60 characters.
@@ -140,7 +140,7 @@ HARD RULES:
         "label": "Mid-Length",
         "emoji": "📄",
         "description": "5–8 lines. Room for one paragraph + a kicker.",
-        "preview": "── ─────────────────────────────────\n\n── ──────────────────── ─────────── ──────\n── ────── ───── ─────────────\n── ──────────────────────────────────\n\n── ─────────────────────",
+        "preview": "───────────────────────────────────\n\n──────────────────── ─────────── ──────\n────── ───── ─────────────\n──────────────────────────────────\n\n─────────────────────",
         "prompt_hint": """FORMAT: MID-LENGTH
 RULES:
   • 5 to 8 lines total.
@@ -156,7 +156,7 @@ RULES:
         "label": "Thread",
         "emoji": "🧵",
         "description": "Numbered tweets. Hook → Points → Close.",
-        "preview": "1/ ──────────────────────────────────\n\n2/ ────── ────────── ─────── ──────\n\n3/ ──────────── ──────────────────\n\n4/ ─────── ──────────────────────\n\n5/ ──────────── ↩",
+        "preview": "1/ ──────────────────────────────────\n\n2/ ─────── ──────────────────\n\n3/ ──────────── ─────────────\n\n4/ ─────────────────────────── ↩",
         "prompt_hint": """FORMAT: THREAD (numbered tweets)
 RULES:
   • Output as numbered tweets: 1/ ... 2/ ... 3/ ... etc.
