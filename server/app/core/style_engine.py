@@ -479,6 +479,7 @@ ANTI-AI QUALITY GATE — REJECT draft if it contains ANY of these:
 {persona_phrase_bans}
 
 2. BANNED SYMBOLS & FORMATTING:
+   ✗ NO DASHES OF ANY KIND — ABSOLUTE BAN. No em dashes (—), en dashes (–), or hyphens (-) used to connect words or thoughts. Write "follow up" not "follow-up". Write "move in clean" not "move-in clean". Use commas, periods, or ellipsis (…) instead of dashes.
    ✗ NO ✨ (Sparkles) — absolute ban.
    ✗ NO 🚀 (Rocket) — unless specifically for a record month milestone announcement.
    ✗ NO 💡 (Lightbulb) — absolute ban for advice posts.
