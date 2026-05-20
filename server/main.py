@@ -124,8 +124,6 @@ async def generate_post(request: GenerationRequest):
             persona_id=request.persona,
             platform=request.platform,
             brief=request.brief,
-            post_type=request.post_type,
-            mood=request.mood,
             tone=request.tone,
             target_audience=request.target_audience,
             custom_audience=request.custom_audience,

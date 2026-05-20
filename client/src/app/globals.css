@@ -162,52 +162,7 @@ h1 {
 .platform-btn:hover  { background: rgba(255,255,255,0.05); color: var(--text); }
 .platform-btn.active { background: #fff; color: #000; border-color: #fff; }
 
-/* ─── Post type ──────────────────────────────────────────────────── */
-.post-type-select {
-  width: 100%;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 0.55rem 0.75rem;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23888' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.75rem center;
-  padding-right: 2rem;
-}
 
-.post-type-select:focus { outline: none; border-color: var(--accent); }
-.post-type-select option { background: #1a1a1a; }
-
-.post-type-desc {
-  font-size: 0.68rem;
-  color: var(--muted);
-  margin-top: 0.35rem;
-  font-style: italic;
-}
-
-/* ─── Mood ───────────────────────────────────────────────────────── */
-.mood-selector { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-
-.mood-btn {
-  padding: 0.3rem 0.65rem;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,0.02);
-  color: var(--muted);
-  font-size: 0.72rem;
-  cursor: pointer;
-  font-family: inherit;
-  transition: all 0.15s;
-}
-
-.mood-btn:hover  { background: rgba(255,255,255,0.05); color: var(--text); }
-.mood-btn.active { border-color: var(--accent); background: rgba(0,112,243,0.1); color: #fff; }
 
 /* ─── X Format Selector ──────────────────────────────────────────── */
 .x-format-grid {

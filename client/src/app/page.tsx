@@ -8,12 +8,6 @@ interface Persona {
   description: string;
 }
 
-interface PostType {
-  id: string;
-  label: string;
-  description: string;
-}
-
 interface ToneOption {
   id: string;
   label: string;
@@ -35,28 +29,14 @@ interface XFormatOption {
   preview: string;
 }
 
-const MOODS = [
-  { id: "proud",       label: "Proud 💪"     },
-  { id: "reflective",  label: "Reflective 🤔" },
-  { id: "frustrated",  label: "Frustrated 😡" },
-  { id: "grateful",    label: "Grateful 🙏"   },
-  { id: "determined",  label: "Determined 🔥" },
-  { id: "hyped",       label: "Hyped 🚀"      },
-  { id: "grinding",    label: "Grinding ⚙️"   },
-  { id: "exhausted",   label: "Exhausted 😮‍💨" },
-];
-
 export default function Home() {
   const [personas, setPersonas]               = useState<Persona[]>([]);
-  const [postTypes, setPostTypes]             = useState<PostType[]>([]);
   const [tones, setTones]                     = useState<ToneOption[]>([]);
   const [audiences, setAudiences]             = useState<AudienceOption[]>([]);
   const [xFormats, setXFormats]               = useState<XFormatOption[]>([]);
 
   const [selectedPersona, setSelectedPersona] = useState<string>("zack");
   const [platform, setPlatform]               = useState<string>("X");
-  const [selectedPostType, setSelectedPostType] = useState<string>("");
-  const [selectedMood, setSelectedMood]       = useState<string>("");
   const [selectedTone, setSelectedTone]       = useState<string>("");
   const [selectedAudience, setSelectedAudience] = useState<string>("");
   const [customAudience, setCustomAudience]   = useState<string>("");
@@ -76,13 +56,6 @@ export default function Home() {
     fetchXFormats();
   }, []);
 
-  useEffect(() => {
-    if (selectedPersona) {
-      fetchPostTypes(selectedPersona);
-      setSelectedPostType("");
-    }
-  }, [selectedPersona]);
-
   // When platform changes away from X, reset x_format
   useEffect(() => {
     if (platform !== "X") setSelectedXFormat("ai_decide");
@@ -101,24 +74,16 @@ export default function Home() {
     }
   };
 
-  const fetchPostTypes = async (personaId: string) => {
-    try {
-      const res = await fetch(`${backendUrl}/post-types/${personaId}`);
-      if (res.ok) setPostTypes(await res.json());
-    } catch { /* silent */ }
-  };
-
   const fetchTones = async () => {
     try {
       const res = await fetch(`${backendUrl}/tones`);
       if (res.ok) setTones(await res.json());
     } catch {
-      // Fallback tones if backend not reachable
       setTones([
         { id: "raw",          label: "Raw & Unfiltered",    emoji: "🔥", description: "No polish. Like a voice note." },
         { id: "story",        label: "Story",               emoji: "📖", description: "Narrative arc: setup, turn, close." },
         { id: "controversial",label: "Controversial Take",  emoji: "⚡", description: "Bold claim people will argue with." },
-        { id: "humble_brag",  label: "Humble Brag",         emoji: "😤", description: "Achievement, but grounded." },
+        { id: "humble_brag",  label: "Humble Brag",         emoji: "😏", description: "Achievement, but grounded." },
         { id: "rant",         label: "Rant",                emoji: "😤", description: "Controlled frustration with clarity." },
         { id: "lesson",       label: "Lesson Learned",      emoji: "💡", description: "What happened and what it taught." },
         { id: "hype",         label: "Hype",                emoji: "🚀", description: "Big energy. Announcement-style." },
@@ -169,8 +134,6 @@ export default function Home() {
         persona:         selectedPersona,
         platform,
         brief,
-        post_type:       selectedPostType   || undefined,
-        mood:            selectedMood        || undefined,
         tone:            selectedTone        || undefined,
         target_audience: selectedAudience    || undefined,
         custom_audience: (selectedAudience === "custom" && customAudience.trim()) ? customAudience.trim() : undefined,
@@ -198,7 +161,6 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const selectedPostTypeObj = postTypes.find(pt => pt.id === selectedPostType);
   const selectedToneObj     = tones.find(t => t.id === selectedTone);
   const selectedAudienceObj = audiences.find(a => a.id === selectedAudience);
   const selectedXFormatObj  = xFormats.find(f => f.id === selectedXFormat);
@@ -281,7 +243,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ── Step: Writing Tone ─────────────────────────── */}
+      {/* ── Step 4: Writing Tone ─────────────────────────── */}
       <div className="card">
         <h2 className="section-title">
           <span className="step-num">{stepNum++}</span>Writing Tone
@@ -305,31 +267,11 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Step: Mood ─────────────────────────────────── */}
-      <div className="card">
-        <h2 className="section-title">
-          <span className="step-num">{stepNum++}</span>Mood
-          <span className="optional-tag">optional</span>
-        </h2>
-        <div className="mood-selector">
-          {MOODS.map((m) => (
-            <button
-              key={m.id}
-              id={`mood-${m.id}`}
-              className={`mood-btn ${selectedMood === m.id ? "active" : ""}`}
-              onClick={() => setSelectedMood(selectedMood === m.id ? "" : m.id)}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Step: Target Audience ──────────────────────── */}
+      {/* ── Step 5: Target Audience ──────────────────────── */}
       <div className="card">
         <h2 className="section-title">
           <span className="step-num">{stepNum++}</span>Target Audience
-          <span className="optional-tag">shapes vocabulary & depth</span>
+          <span className="optional-tag">shapes vocabulary &amp; depth</span>
         </h2>
         <div className="audience-grid">
           {audiences.map((a) => (
@@ -356,29 +298,7 @@ export default function Home() {
         )}
       </div>
 
-      {/* ── Step: Post Type (persona-specific, optional) ── */}
-      <div className="card">
-        <h2 className="section-title">
-          <span className="step-num">{stepNum++}</span>Post Type
-          <span className="optional-tag">optional but recommended</span>
-        </h2>
-        <select
-          id="post-type-select"
-          className="post-type-select"
-          value={selectedPostType}
-          onChange={(e) => setSelectedPostType(e.target.value)}
-        >
-          <option value="">Auto (based on brief)</option>
-          {postTypes.map((pt) => (
-            <option key={pt.id} value={pt.id}>{pt.label}</option>
-          ))}
-        </select>
-        {selectedPostTypeObj && (
-          <p className="post-type-desc">{selectedPostTypeObj.description}</p>
-        )}
-      </div>
-
-      {/* ── Step: Brief + Generate ─────────────────────── */}
+      {/* ── Step 6: Brief + Generate ─────────────────────── */}
       <div className="card">
         <h2 className="section-title"><span className="step-num">{stepNum++}</span>The Brief</h2>
         <div className="brief-guidance">
@@ -428,9 +348,6 @@ export default function Home() {
                   <span className="result-badge audience-badge">
                     {selectedAudienceObj.emoji} {selectedAudience === "custom" && customAudience ? customAudience : selectedAudienceObj.label}
                   </span>
-                )}
-                {selectedPostType && (
-                  <span className="result-badge">{selectedPostType.replace(/_/g, " ")}</span>
                 )}
               </div>
             )}

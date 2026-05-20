@@ -111,13 +111,18 @@ X_FORMATS = [
         "description": "Punchy. Under 140 chars. No explanation.",
         "preview": "──────────────────────────\n─────────────────",
         "prompt_hint": """FORMAT: 2-LINER (STRICT)
-HARD RULES — any violation means the output is rejected:
+HARD RULES — any violation means the output is REJECTED and you must rewrite from scratch:
   • Exactly 2 lines. Not 3. Not 4. Two.
   • Total character count MUST be under 200 characters including line break.
   • No hashtags. No emojis unless the persona always uses one.
   • No explanation, no context, no setup beyond line 1.
   • Line 1 = the hook or statement. Line 2 = the gut-punch or contrast.
   • Both lines must be able to stand alone as a complete thought.
+SELF-CHECK (MANDATORY before outputting):
+  1. Count your lines. More than 2? DELETE the entire draft. Rewrite as exactly 2 lines.
+  2. Count characters including the line break. Over 200? CUT words until under 200.
+  3. The example posts above show VOICE only. Their length, structure, and line count do NOT apply here. This format block overrides everything above it.
+  IF YOUR DRAFT FAILS ANY CHECK: DO NOT output it. Rewrite from zero.
 """,
     },
     {
@@ -127,12 +132,17 @@ HARD RULES — any violation means the output is rejected:
         "description": "3–4 short lines. One idea per line.",
         "preview": "──────────────────────────────\n────────────────────\n──────────────────────────\n─────────────",
         "prompt_hint": """FORMAT: 4-LINER (STRICT)
-HARD RULES:
+HARD RULES — any violation means the output is REJECTED:
   • 3 to 4 lines maximum. Each line is short — ideally under 60 characters.
   • One idea per line. No run-on sentences.
   • No paragraphs. No walls of text.
   • The last line should be the sharpest or most surprising.
   • No hashtags. Emojis only if the persona naturally uses them.
+SELF-CHECK (MANDATORY before outputting):
+  1. Count your lines. More than 4? DELETE the entire draft. Rewrite as 3–4 lines.
+  2. Each line one idea only — no cramming two thoughts on one line.
+  3. The example posts above show VOICE only. Their length does NOT apply here.
+  IF YOUR DRAFT FAILS ANY CHECK: DO NOT output it. Rewrite from zero.
 """,
     },
     {
@@ -142,13 +152,17 @@ HARD RULES:
         "description": "5–8 lines. Room for one paragraph + a kicker.",
         "preview": "───────────────────────────────────\n\n──────────────────── ─────────── ──────\n────── ───── ─────────────\n──────────────────────────────────\n\n─────────────────────",
         "prompt_hint": """FORMAT: MID-LENGTH
-RULES:
-  • 5 to 8 lines total.
+RULES — any violation means the output is REJECTED:
+  • 5 to 8 lines total (count blank lines too).
   • Can have one short paragraph (2–3 sentences) in the middle.
   • Open strong, close strong.
   • Use line breaks intentionally — not just paragraph wrapping.
   • End with a kicker line that stands alone.
   • No hashtags unless the persona uses them. Max 1–2 emojis if persona allows.
+SELF-CHECK (MANDATORY before outputting):
+  1. Count total lines including blank lines. Under 5? Expand. Over 8? Cut.
+  2. The example posts above show VOICE only. Their length does NOT apply here.
+  IF YOUR DRAFT FAILS ANY CHECK: DO NOT output it. Rewrite from zero.
 """,
     },
     {
@@ -158,7 +172,7 @@ RULES:
         "description": "Numbered tweets. Hook → Points → Close.",
         "preview": "1/ ──────────────────────────────────\n\n2/ ─────── ──────────────────\n\n3/ ──────────── ─────────────\n\n4/ ─────────────────────────── ↩",
         "prompt_hint": """FORMAT: THREAD (numbered tweets)
-RULES:
+RULES — any violation means the output is REJECTED:
   • Output as numbered tweets: 1/ ... 2/ ... 3/ ... etc.
   • Tweet 1 = the HOOK. Must make someone stop scrolling. Bold claim or tension.
   • Tweets 2–4 = expand one point per tweet. Each tweet standalone-readable.
@@ -166,6 +180,11 @@ RULES:
   • Total 4–6 tweets. Each tweet max 280 characters.
   • Each tweet separated by a blank line.
   • No "Thread:" prefix. Just start with 1/.
+SELF-CHECK (MANDATORY before outputting):
+  1. Count numbered tweets. Under 4? Add a tweet. Over 6? Cut a tweet.
+  2. Count characters of each tweet. Over 280? Cut ruthlessly.
+  3. The example posts above show VOICE only. Their structure does NOT apply here.
+  IF YOUR DRAFT FAILS ANY CHECK: DO NOT output it. Rewrite from zero.
 """,
     },
     {
@@ -229,8 +248,6 @@ class StyleEngine:
         persona_id: str,
         platform: str,
         brief: str,
-        post_type: Optional[str] = None,
-        mood: Optional[str] = None,
         tone: Optional[str] = None,
         target_audience: Optional[str] = None,
         custom_audience: Optional[str] = None,
@@ -285,29 +302,7 @@ class StyleEngine:
         emoji_never      = emoji_usage.get("never", [])
         emoji_rules_lines = [f"  • {k}: {v}" for k, v in emoji_rules_dict.items()]
 
-        # ── Post type specific guidance ──────────────────────────────────────
-        post_type_block = ""
-        if post_type and post_type in post_types:
-            pt = post_types[post_type]
-            pt_description = pt.get("description", "")
-            pt_format      = pt.get("format", pt.get("key_elements", []))
-            pt_rules       = pt.get("rules", [])
-            pt_example     = pt.get("example", "")
-
-            format_lines = "\n".join([f"  {i+1}. {line}" for i, line in enumerate(pt_format)])
-            rules_lines  = "\n".join([f"  - {r}" for r in pt_rules]) if pt_rules else ""
-            example_block = f"\n  EXAMPLE:\n  {pt_example}" if pt_example else ""
-
-            post_type_block = f"""
-REQUESTED POST TYPE: {post_type.upper().replace('_', ' ')}
-Description: {pt_description}
-Required format/elements:
-{format_lines}
-{rules_lines}{example_block}
-"""
-
-        # ── Mood ────────────────────────────────────────────────────────────
-        mood_block = f"\nMOOD FOR THIS POST: {mood.upper()}" if mood else ""
+        # ── Post type and mood removed — inferred from brief content ────────
 
         # ── NEW: Writing Tone block ──────────────────────────────────────────
         tone_block = ""
@@ -347,14 +342,20 @@ TARGET AUDIENCE: {matched_audience['label'].upper()}
 Calibrate vocabulary, assumed knowledge, and reference points to this specific reader.
 """
 
-        # ── NEW: X Format block ──────────────────────────────────────────────
+        # ── X Format block — assembled here, injected LAST in system prompt ──
         x_format_block = ""
         if x_format and platform.upper() in ("X", "TWITTER"):
             matched_format = next((f for f in X_FORMATS if f["id"] == x_format), None)
             if matched_format:
                 x_format_block = f"""
 ════════════════════════════════════════════════════════════
-{matched_format['prompt_hint']}════════════════════════════════════════════════════════════
+⚠ FINAL FORMAT OVERRIDE — THIS SUPERSEDES ALL OTHER FORMATTING ABOVE ⚠
+════════════════════════════════════════════════════════════
+The examples you just studied show VOICE and vocabulary only.
+Their length and structure do NOT apply here — this format does.
+
+{matched_format['prompt_hint']}
+════════════════════════════════════════════════════════════
 """
 
         # ── Recurring motifs ─────────────────────────────────────────────────
@@ -387,13 +388,19 @@ CRITICAL PERSONA SEPARATION (these are absolute rules):
 {other_lines}
 """
 
-        # ── Examples: select up to 10, prioritise matching post type ─────────
-        type_examples  = [ex for ex in examples if ex.get("type") == post_type] if post_type else []
-        other_examples = [ex for ex in examples if ex.get("type") != post_type]
-
-        selected = type_examples[:3]
-        remaining_slots = 10 - len(selected)
-        selected += other_examples[:remaining_slots]
+        # ── Examples: select 10 diverse examples (no post_type filtering) ────
+        # Spread across different types for maximum voice coverage
+        seen_types: set = set()
+        diverse: list = []
+        remainder: list = []
+        for ex in examples:
+            t = ex.get("type", "")
+            if t not in seen_types:
+                seen_types.add(t)
+                diverse.append(ex)
+            else:
+                remainder.append(ex)
+        selected = (diverse + remainder)[:10]
 
         formatted_examples = "\n\n---\n".join([
             f"[EXAMPLE — type: {ex.get('type')}]\n{ex.get('post', '')}"
@@ -433,16 +440,20 @@ ANTI-AI QUALITY GATE — REJECT draft if it contains ANY of these:
    ✗ "Dive deep" / "Delve" / "Unlock" / "Unleash" / "Harness"
    ✗ "Elevate" / "Transform" / "Revolutionize" / "Mastering"
    ✗ "Robust" / "Seamlessly" / "Comprehensive" / "Vital" / "Crucial"
-   ✗ "Thilled to announce" / "Excited to share" / "Wanted to take a moment"
+   ✗ "Thrilled to announce" / "Excited to share" / "Wanted to take a moment"
    ✗ "Let's connect" / "Drop a comment" / "What are your thoughts?"
    ✗ "Game changer" / "Level up" / "Tapestry" / "Synergy" / "Leverage"
    ✗ "Buckle up" / "Here's the kicker" / "Navigating" / "Empowering"
    ✗ "I'm a big believer in..." / "Success is all about..."
+   ✗ "The grind is real" / "the grind was real" — Alex signature phrase, never use for Zack
+   ✗ "every single day" / "grinding every single day" / "still learning and grinding every single day" — Alex closers, absolute ban
+   ✗ "building the machine" / "build the machine" — Alex vocabulary, never Zack
+   ✗ "just another day" — Alex phrase
 
 2. BANNED SYMBOLS & FORMATTING:
    ✗ NO ✨ (Sparkles) — absolute ban.
    ✗ NO 🚀 (Rocket) — unless specifically for a milestone announcement.
-   ✗ NO 💡 (Lightbulb) — absolute ban for advice.
+   ✗ NO 💡 (Lightbulb) — absolute ban for advice posts.
    ✗ NO starting every line with an emoji.
    ✗ NO starting posts with "Hey guys," "Hi everyone," or "Just shared."
    ✗ NO exclamation marks at the end of every sentence.
@@ -453,6 +464,11 @@ ANTI-AI QUALITY GATE — REJECT draft if it contains ANY of these:
    • Use varied sentence lengths. Occasional all-caps for emphasis is fine, but don't overdo it.
    • Write like a voice note, not a blog post.
    • NO hashtags at the end.
+
+4. QUESTION HALLUCINATION — ABSOLUTE BAN:
+   ✗ NEVER add a community question that is NOT explicitly in the brief.
+   ✗ If the brief has one question, use that exact question — do not add a second.
+   ✗ If the brief has no question, the post has no question. Full stop.
 ════════════════════════════════════════════════════════════
 """
 
@@ -527,7 +543,7 @@ Allowed emojis and when to use them:
 
 NEVER use emojis:
 {chr(10).join([f'  ✗ {n}' for n in emoji_never])}
-{diff_block}{motifs_block}{post_type_block}{mood_block}{tone_block}{audience_block}{x_format_block}
+{diff_block}{motifs_block}{tone_block}{audience_block}{x_format_block}
 ════════════════════════════════════════════════════════════
 REAL EXAMPLES OF {persona_name.upper()}'S ACTUAL POSTS
 ════════════════════════════════════════════════════════════
