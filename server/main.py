@@ -29,8 +29,6 @@ class GenerationRequest(BaseModel):
     persona: str
     platform: str
     brief: str
-    post_type: Optional[str] = None
-    mood: Optional[str] = None
     tone: Optional[str] = None
     target_audience: Optional[str] = None
     custom_audience: Optional[str] = None
@@ -43,10 +41,6 @@ class Persona(BaseModel):
     description: str
 
 
-class PostType(BaseModel):
-    id: str
-    label: str
-    description: str
 
 
 class ToneOption(BaseModel):
@@ -90,13 +84,6 @@ async def get_personas():
         for pid, data in personas_data.items()
     ]
 
-
-@app.get("/post-types/{persona_id}", response_model=List[PostType])
-async def get_post_types(persona_id: str):
-    """Return available post types for a given persona."""
-    if persona_id not in engine.personas:
-        raise HTTPException(status_code=404, detail=f"Persona '{persona_id}' not found")
-    return engine.get_post_types(persona_id)
 
 
 @app.get("/tones", response_model=List[ToneOption])
@@ -151,24 +138,23 @@ async def generate_post(request: GenerationRequest):
                     print(f"Model discovery failed: {e}")
 
                 priority_models = [
-                    "gemini-1.5-flash",
-                    "gemini-1.5-flash-latest",
-                    "gemini-1.5-flash-8b",
-                    "gemini-flash-latest",
+                    "gemini-2.5-flash",
+                    "gemini-3.5-flash",
                     "gemini-2.0-flash",
+                    "gemini-1.5-flash-latest",
+                    "gemini-1.5-flash",
                 ]
 
-                target_model = "gemini-1.5-flash"
+                # Filter to only models actually available
+                models_to_try = []
                 for candidate in priority_models:
                     full_name = f"models/{candidate}"
                     if full_name in available or candidate in available:
-                        target_model = candidate
-                        break
-
-                print(f"DEBUG: Attempting generation with: {target_model}")
+                        models_to_try.append(candidate)
+                if not models_to_try:
+                    models_to_try = ["gemini-2.0-flash"]  # fallback
 
                 config = types.GenerateContentConfig(
-                    # System instruction keeps rules fully separate from the user turn
                     system_instruction=system_prompt,
                     temperature=0.65,
                     top_p=0.92,
@@ -181,23 +167,36 @@ async def generate_post(request: GenerationRequest):
                     ]
                 )
 
-                # user_message is the ONLY thing in contents — clean turn boundary
-                response = client.models.generate_content(
-                    model=target_model,
-                    contents=user_message,
-                    config=config,
-                )
+                # Try each model — if one hits 429 quota, move to next
+                last_error = None
+                for target_model in models_to_try:
+                    try:
+                        print(f"DEBUG: Attempting generation with: {target_model}")
+                        response = client.models.generate_content(
+                            model=target_model,
+                            contents=user_message,
+                            config=config,
+                        )
+                        return {
+                            "persona": request.persona,
+                            "platform": request.platform,
+                            "tone": request.tone,
+                            "target_audience": request.target_audience,
+                            "x_format": request.x_format,
+                            "content": response.text.strip(),
+                            "model": target_model,
+                        }
+                    except Exception as model_err:
+                        last_error = model_err
+                        err_str = str(model_err)
+                        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "503" in err_str or "UNAVAILABLE" in err_str:
+                            print(f"DEBUG: {target_model} unavailable/quota hit, trying next model...")
+                            continue
+                        else:
+                            raise  # non-quota error, stop immediately
 
-                return {
-                    "persona": request.persona,
-                    "platform": request.platform,
-                    "post_type": request.post_type,
-                    "tone": request.tone,
-                    "target_audience": request.target_audience,
-                    "x_format": request.x_format,
-                    "content": response.text.strip(),
-                    "model": target_model,
-                }
+                # All Gemini models exhausted
+                raise Exception(f"All Gemini models quota exhausted. Last error: {last_error}")
 
             except Exception as e:
                 print(f"Gemini failed: {e}")
@@ -220,7 +219,6 @@ async def generate_post(request: GenerationRequest):
             return {
                 "persona": request.persona,
                 "platform": request.platform,
-                "post_type": request.post_type,
                 "tone": request.tone,
                 "target_audience": request.target_audience,
                 "x_format": request.x_format,

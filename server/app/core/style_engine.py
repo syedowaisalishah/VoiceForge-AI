@@ -342,12 +342,13 @@ TARGET AUDIENCE: {matched_audience['label'].upper()}
 Calibrate vocabulary, assumed knowledge, and reference points to this specific reader.
 """
 
-        # ── X Format block — assembled here, injected LAST in system prompt ──
+        # ── Format block — assembled here, injected LAST in system prompt ─────
         x_format_block = ""
-        if x_format and platform.upper() in ("X", "TWITTER"):
-            matched_format = next((f for f in X_FORMATS if f["id"] == x_format), None)
-            if matched_format:
-                x_format_block = f"""
+        if platform.upper() in ("X", "TWITTER"):
+            if x_format:
+                matched_format = next((f for f in X_FORMATS if f["id"] == x_format), None)
+                if matched_format:
+                    x_format_block = f"""
 ════════════════════════════════════════════════════════════
 ⚠ FINAL FORMAT OVERRIDE — THIS SUPERSEDES ALL OTHER FORMATTING ABOVE ⚠
 ════════════════════════════════════════════════════════════
@@ -355,6 +356,18 @@ The examples you just studied show VOICE and vocabulary only.
 Their length and structure do NOT apply here — this format does.
 
 {matched_format['prompt_hint']}
+════════════════════════════════════════════════════════════
+"""
+        elif platform.upper() == "FACEBOOK":
+            x_format_block = """
+════════════════════════════════════════════════════════════
+PLATFORM: FACEBOOK
+════════════════════════════════════════════════════════════
+Facebook posts can be longer than X/Twitter — up to 500 words if the brief warrants it.
+But the persona voice stays EXACTLY the same. Don't shift to a formal or polished tone.
+Paragraphs should still be short (2-3 sentences max). Line breaks between sections.
+No hashtags. No "Share if you agree" or engagement-bait CTAs.
+If the brief is short, the post is short. Never pad to fill space.
 ════════════════════════════════════════════════════════════
 """
 
@@ -388,7 +401,7 @@ CRITICAL PERSONA SEPARATION (these are absolute rules):
 {other_lines}
 """
 
-        # ── Examples: select 10 diverse examples (no post_type filtering) ────
+        # ── Examples: select 20 diverse examples (no post_type filtering) ────
         # Spread across different types for maximum voice coverage
         seen_types: set = set()
         diverse: list = []
@@ -400,7 +413,7 @@ CRITICAL PERSONA SEPARATION (these are absolute rules):
                 diverse.append(ex)
             else:
                 remainder.append(ex)
-        selected = (diverse + remainder)[:10]
+        selected = (diverse + remainder)[:20]
 
         formatted_examples = "\n\n---\n".join([
             f"[EXAMPLE — type: {ex.get('type')}]\n{ex.get('post', '')}"
@@ -428,12 +441,28 @@ HALLUCINATION FIREWALL — NON-NEGOTIABLE HARD RULES:
 ════════════════════════════════════════════════════════════
 """
 
-        # ── Anti-AI Quality Gate (DEEP CLEAN) ────────────────────────────────
-        anti_ai_block = """
+        # ── Anti-AI Quality Gate (DEEP CLEAN) — persona-aware ─────────────────
+        # Zack bans Alex phrases; Alex bans Zack phrases. Universal AI-filler is always banned.
+        if persona_id == "zack":
+            persona_phrase_bans = """
+   ✗ "The grind is real" / "the grind was real" — Alex signature phrase, never use for Zack
+   ✗ "every single day" / "grinding every single day" / "still learning and grinding every single day" — Alex closers, absolute ban for Zack
+   ✗ "building the machine" / "build the machine" — Alex vocabulary, never Zack
+   ✗ "just another day in the cleaning business" — Alex phrase, never Zack
+   ✗ "crushing it" / "killing it" — not Zack's vocabulary"""
+        else:
+            persona_phrase_bans = """
+   ✗ "FOOT ON THE GAS" / "Lock in." — Zack closers, absolute ban for Alex
+   ✗ "Part of the game" — Zack's resilience phrase, not Alex's
+   ✗ "Gotta love it" / "absolute blessing" — Zack phrases, never Alex
+   ✗ "so hyped" / "so hyped up" — Zack energy, not Alex's calm confidence
+   ✗ Excessive emoji use (3+) — Alex uses 0-3 max, Zack uses more"""
+
+        anti_ai_block = f"""
 ════════════════════════════════════════════════════════════
 ANTI-AI QUALITY GATE — REJECT draft if it contains ANY of these:
 ════════════════════════════════════════════════════════════
-1. BANNED FILLER WORDS / PHRASES:
+1. BANNED FILLER WORDS / PHRASES (universal — never use for any persona):
    ✗ "In today's..." / "In a world where..."
    ✗ "Look no further" / "The truth is" / "The reality is"
    ✗ "It's important to remember" / "One thing I've learned"
@@ -445,14 +474,13 @@ ANTI-AI QUALITY GATE — REJECT draft if it contains ANY of these:
    ✗ "Game changer" / "Level up" / "Tapestry" / "Synergy" / "Leverage"
    ✗ "Buckle up" / "Here's the kicker" / "Navigating" / "Empowering"
    ✗ "I'm a big believer in..." / "Success is all about..."
-   ✗ "The grind is real" / "the grind was real" — Alex signature phrase, never use for Zack
-   ✗ "every single day" / "grinding every single day" / "still learning and grinding every single day" — Alex closers, absolute ban
-   ✗ "building the machine" / "build the machine" — Alex vocabulary, never Zack
-   ✗ "just another day" — Alex phrase
+
+   PERSONA-SPECIFIC BANS ({persona_name} must NEVER use these):
+{persona_phrase_bans}
 
 2. BANNED SYMBOLS & FORMATTING:
    ✗ NO ✨ (Sparkles) — absolute ban.
-   ✗ NO 🚀 (Rocket) — unless specifically for a milestone announcement.
+   ✗ NO 🚀 (Rocket) — unless specifically for a record month milestone announcement.
    ✗ NO 💡 (Lightbulb) — absolute ban for advice posts.
    ✗ NO starting every line with an emoji.
    ✗ NO starting posts with "Hey guys," "Hi everyone," or "Just shared."

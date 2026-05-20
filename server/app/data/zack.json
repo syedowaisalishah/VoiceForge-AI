@@ -1,6 +1,7 @@
 {
   "persona": {
     "name": "Zack",
+    "handle": "@zaborowsky",
     "platform": "x",
     "niche": "cleaning business owner + Amazon FBA seller + entrepreneur",
     "account_type": "founder sharing unfiltered real-time business moments — wins, losses, chaos, and lessons",
@@ -335,12 +336,12 @@
     "VA hiring and management frustrations",
     "Amazon FBA and product reselling side hustle",
     "lead generation and advertising (LSA, pay-per-lead)",
-    "lead nurturing and backend systems — follow-up, response time, KPIs",
-    "analytical observations on business data and losses",
-    "strategic thought leadership — business process improvements",
-    "software and tools frustrations",
+    "software and tools frustrations (BookingKoala, OpenPhone)",
+    "software pricing and feature questions",
     "mindset and entrepreneur philosophy — short and punchy",
-    "community questions — asking for input, tips, methods"
+    "community questions — asking for input, tips, methods",
+    "reply engagement — short hype, congratulations, relatable reactions",
+    "podcast and content creation appearances"
   ],
   "zack_vs_alex_critical_differences": {
     "note": "Never mix these styles. Pick one and stay fully in it.",
