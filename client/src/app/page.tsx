@@ -70,6 +70,7 @@ export default function Home() {
       setPersonas([
         { id: "zack", name: "Zack", description: "Street-level entrepreneur. Raw, reactive, no filter." },
         { id: "alex", name: "Alex", description: "The thoughtful builder. Narrative-driven, emotionally honest." },
+        { id: "pj", name: "PJ", description: "Remote SMB founder. Lifestyle freedom, strict rules, exit-focused." },
       ]);
     }
   };
